@@ -63,8 +63,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     email_verified_at = models.DateTimeField(blank=True, null=True)
 
     # payment gateway fields
-    # stripe_customer_id = models.CharField(max_length=100, blank=True, null=True)
-    # stripe_customer_response = models.JSONField(max_length=1000, blank=True, null=True)
+    stripe_customer_id = models.CharField(max_length=100, blank=True, null=True)
+    stripe_customer_response = models.JSONField(max_length=1000, blank=True, null=True)
 
     # timestamps
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
@@ -102,7 +102,7 @@ from django.db import models
 
 from django.db.models.fields.related import ForeignKey, OneToOneField
 
-from accounts.models import CustomUser
+from app.models import CustomUser
 
 
 # from analytics.models import *
@@ -228,6 +228,14 @@ class UserSubscription(models.Model):
 
 
 
+class Garage(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200, null=True, blank=True)
+    address = models.CharField(max_length=200, null=True, blank=True)
+    subscriptionEnabled = models.BooleanField(default=False)
 
 
-
+class Rating(models.Model):
+    garage = models.ForeignKey(Garage, on_delete=models.CASCADE)
+    rating = models.IntegerField(null=True, blank=True)
+    

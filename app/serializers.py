@@ -59,6 +59,11 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         model = UserSubscription
         fields = '__all__'
 
+class GarageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Garage
+        fields = '__all__'
+
 
 
 

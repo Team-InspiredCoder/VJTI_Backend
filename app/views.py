@@ -20,6 +20,7 @@ import uuid
 from django.http import JsonResponse
 
 from rest_framework.decorators import api_view
+from django.db.models import Avg, F
 
 
 # global function here
@@ -213,6 +214,9 @@ from rest_framework.decorators import api_view
 
 @api_view(['GET'])
 def scrap_from_indian_oil(request):
+
+    ip = request.META.get('REMOTE_ADDR')
+    print("ip:",request.META)
     location = request.GET.get('location')
     stores_data = []
     url = "https://locator.iocl.com/?search={}".format(location)
@@ -272,3 +276,75 @@ def scrap_from_indian_oil(request):
         print("Response content:", response.text)
 
         return JsonResponse({"error": "Failed to fetch data"}, status=500)
+
+from bs4 import BeautifulSoup
+
+import json
+@api_view(['GET'])
+def puc_data(request):
+    location = request.data.get('location')
+    url = "https://www.indiacom.com/yellow-pages/p-u-c--center/{}".format(location)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        # The request was successful
+        html_content = response.content.decode("utf-8")
+    soup = BeautifulSoup(html_content, 'html.parser')
+    result_info_list = []
+
+    for resultbox_info in soup.find_all('div', class_='mx-2'):
+        name = resultbox_info.find('h2').text.strip()
+        address = resultbox_info.find('address').text.strip()
+        # phone_link = resultbox_info.find('a', class_='btn m-1')['href']
+        # Extracting phone number from the link
+        # phone_number = phone_link.split('/')[-1].replace('.html', '')
+
+        result_info_list.append({
+            'name': name,
+            'address': address,
+            # 'phone_number': phone_number,
+        })
+
+    print("result_info_list:",result_info_list)
+
+    return JsonResponse({"data": result_info_list})
+
+@api_view(['POST'])
+def register_garage(request):
+    basic = request.data['basic']
+    garage  = request.data['garage']
+    subscriptionEnabled = request.data['garage'].get('subscription_enabled',False)
+    user = CustomUser.objects.create(email=basic['email'],
+                              first_name=basic['first_name'],
+                              last_name=basic['last_name'],
+                              mobile_number=basic['mobile_number'],
+                              gender = basic['gender'])
+    Garage.objects.create(user=user,name=garage['name'],
+                          address=garage['address'],
+                          subscriptionEnabled=subscriptionEnabled)
+    return JsonResponse({"message":"Garage Created Successfully"})
+
+    
+
+
+@api_view(['GET'])
+def get_garage(request):
+    queryset = Garage.objects.annotate(avg_rating=Avg('rating__rating')).order_by('-subscriptionEnabled', '-avg_rating')
+    data = GarageSerializer(queryset, many=True).data
+    return JsonResponse({'data': data})
+
+
+
+@api_view(['POST'])
+def rate_garage(request):
+    garage_id = request.data.get('garage_id')
+    rating = request.data.get('rating')
+    garage = Garage.objects.get(id=garage_id)
+    Rating.objects.create(garage=garage,rating=rating)
+    return JsonResponse({'message': "Rating Added!"})
+

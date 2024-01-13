@@ -8,10 +8,10 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db import transaction
-from accounts.models import *
-from accounts.serializers import *
+from app.models import *
+from app.serializers import *
 from django.views.decorators.csrf import csrf_exempt
-from sayheybot import settings
+from backend import settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -22,7 +22,7 @@ from pathlib import Path
 # from xhtml2pdf import pisa
 from django.template.loader import get_template
 from rest_framework.decorators import api_view
-import pdfkit
+# import pdfkit
 import random
 from .serializers import *
 from .models import *
@@ -157,9 +157,7 @@ def createStripeCustomer(user, payment_method=None):
                 name= user.first_name,
                 metadata={
                     "user_email":user.email,
-                    "user_type":user.user_type,
-                    "user_name": f"{user.first_name} {user.last_name}" if not user.user_type == "company" else user.company_name
-                }
+                    }
             )
 
         else:
@@ -169,9 +167,7 @@ def createStripeCustomer(user, payment_method=None):
                 name= user.first_name,
                 metadata={
                     "user_email":user.email,
-                    "user_type":user.user_type,
-                    "user_name": f"{user.first_name} {user.last_name}" if not user.user_type == "company" else user.company_name
-                }
+                    }
             )
 
         return True, customer
@@ -239,9 +235,7 @@ def createStripePaymentMethod(user, type, card_details={}):
             card=card_details,
             metadata={
                 "user_email": user.email,
-                "user_type": user.user_type,
-                "user_name": f"{user.first_name} {user.last_name}" if not user.user_type == "company" else user.company_name
-            }
+                       }
         )
 
         return True, payment_method
@@ -346,10 +340,10 @@ def retrieveStripeSubscription(cus_id, subs_id=None):
 
 def test(request):
 
-    # logo_url = "http://127.0.0.1:8000/media/accounts/normal_users/profile_pictures/img5.jpg"
-    # logo_url = "http://127.0.0.1:8080/media/accounts/normal_users/profile_pictures/sayheybot_logo.png"
-    # logo_url = "http://127.0.0.1:8080/media/accounts/normal_users/profile_pictures/WhatsApp_Image_2022-07-29_at_9.57.06_PM.jpeg"
-    logo_url = (str(settings.BASE_DIR) + r"\static\images\sayheybot_logo.png")
+    # logo_url = "http://127.0.0.1:8000/media/app/normal_users/profile_pictures/img5.jpg"
+    # logo_url = "http://127.0.0.1:8080/media/app/normal_users/profile_pictures/backend_logo.png"
+    # logo_url = "http://127.0.0.1:8080/media/app/normal_users/profile_pictures/WhatsApp_Image_2022-07-29_at_9.57.06_PM.jpeg"
+    logo_url = (str(settings.BASE_DIR) + r"\static\images\backend_logo.png")
     # data = {
     #     'logo_url':logo_url,
     # }
@@ -358,7 +352,7 @@ def test(request):
             "invoice_number":"90-100", "sub_total":100,"total":100,"amount_due":0, 
             "payment_type": "subscription",
             "date": "10-09-2021", "stripe_id": "stripe_txn_DhdjfksdfLKH123", "recurring_period": 6,
-            "plan_id":1, "plan_name": "SayHeyBot Premium Services", "quantity": 1, "amount_paid": "100"
+            "plan_id":1, "plan_name": "backend Premium Services", "quantity": 1, "amount_paid": "100"
         }
 
     return render(request, 'Invoicetemplate/test_invoice.html', data)
@@ -408,12 +402,18 @@ class PaymentMethod(APIView):
         
         try:
 
+
+    
             if request.user.is_authenticated:
                 print("User :: ", request.user)
                 user = request.user
                 data = request.data
                 # data._mutable=True
-                
+
+                status_,customer = createStripeCustomer(user)
+
+                CustomUser.objects.filter(email=user.email).update(stripe_customer_id=customer.id,stripe_customer_response=customer)
+               
                 if not UserPaymentInfo.objects.filter(user=user, card_no=data['card_no']).exists():
                     
                     card_details = {
@@ -427,6 +427,8 @@ class PaymentMethod(APIView):
                     if not status:
                         return Response({"success": False, "error":False, "message": payment_method})
 
+
+
                     if UserPaymentInfo.objects.filter(user=user).count() == 0:
                         print("User dont have any payment method added !")
                         # user added his/her first payment method so set this payment method as default payment method
@@ -439,7 +441,7 @@ class PaymentMethod(APIView):
                         if not status:
                             return Response({"success": False, "error":False, "message": resps})
                         
-                        data._mutable=True
+                        # data._mutable=True
 
                         data["is_default"] = True
 
@@ -516,9 +518,7 @@ class PaymentMethod(APIView):
                         },
                         "metadata": {
                             "user_email": user.email,
-                            "user_type": user.user_type,
-                            "user_name": f"{user.first_name} {user.last_name}" if not user.user_type == "company" else user.company_name
-                        }
+                                                }
                     }
 
                     status, msg = updateStripePaymentMethod(pm.stripe_payment_method_id, args)
@@ -603,7 +603,7 @@ class Payment(APIView):
                     payment_method_id = request.data.get('payment_method_id', None)
                     package_id = request.data.get('package_id', None)
 
-                    if payment_method_id == None or package_id == None:
+                    if payment_method_id == None:
                         return Response({"success": False, "error":False, "message": "Please provide 'payment_method_id' and 'amount' !"})
                     
                     payment_method = UserPaymentInfo.objects.filter(id=payment_method_id).first()
@@ -612,45 +612,51 @@ class Payment(APIView):
                     if payment_method == None:
                         return Response({"success": False, "error":False, "message": "Valid Payment method not Found !"})
 
+
+                    # st, ms = attachPaymentMethodToStripeCustomer(pm_id="pm_1OY7WtSE5WnqzRUfJupzcvNS", cus_id="cus_PMrFj4xpc1a1DA")
+
+                    # print("ms:",ms)
                     payment = stripe.PaymentIntent.create(
                         customer=user.stripe_customer_id, 
-                        payment_method=payment_method.stripe_payment_method_id,  
-                        currency=payment_method.currency,
-                        amount=package.amount,
-                        confirm=True
+                        payment_method="pm_1OY7WtSE5WnqzRUfJupzcvNS",  
+                        currency="inr",
+                        amount=request.data.get('amount'),
+                        confirm=True,
+                        # automatic_payment_methods={"enabled": True},
+                        automatic_payment_methods={'allow_redirects': "never","enabled":True},
                     )
 
                     print("payment :: ", payment)
 
                     # in_obj => invoice object
-                    in_obj = InvoiceDetail.objects.filter(user=user)
-                    if in_obj is not None:
-                        last_invoice_no = in_obj.order_by('-id')[0].invoice_number
-                    else:
-                        last_invoice_no = "0-0"
+                    # in_obj = InvoiceDetail.objects.filter(user=user)
+                    # if in_obj is not None:
+                    #     last_invoice_no = in_obj.order_by('-id')[0].invoice_number
+                    # else:
+                    #     last_invoice_no = "0-0"
 
-                    invoice_no = generateInvoiceNumber(user=user, last_invoice_no=last_invoice_no)
+                    # invoice_no = generateInvoiceNumber(user=user, last_invoice_no=last_invoice_no)
 
-                    # create invoice details object here 
-                    in_d = InvoiceDetail.objects.create(user=user, invoice_number=invoice_no, invoice_date=date.today(), quantity=1, 
-                                                        sub_total=package.amount, total=package.amount, price_id=package.price_id, user_mobile_no=user.mobile_number)
-                    in_d.save()
+                    # # create invoice details object here 
+                    # in_d = InvoiceDetail.objects.create(user=user, invoice_number=invoice_no, invoice_date=date.today(), quantity=1, 
+                    #                                     sub_total=package.amount, total=package.amount, price_id=package.price_id, user_mobile_no=user.mobile_number)
+                    # in_d.save()
 
 
-                    # create payment history object here
-                    # new_ph => new payment history
-                    new_ph = PaymentHistory.objects.create(user=user, package=package, invoice=in_d, payment_method=payment_method, payment_type="one-time-payment", currency=payment_method.currency, 
-                                                            payment_id=payment.id, payment_response=payment, amount=package.amount)
-                    new_ph.save()
+                    # # create payment history object here
+                    # # new_ph => new payment history
+                    # new_ph = PaymentHistory.objects.create(user=user, package=package, invoice=in_d, payment_method=payment_method, payment_type="one-time-payment", currency=payment_method.currency, 
+                    #                                         payment_id=payment.id, payment_response=payment, amount=package.amount)
+                    # new_ph.save()
 
-                    # generate invoice here
-                    status_gi, file_path = generateInvoiceFile(user=user, ph_id=new_ph.id)
-                    if status_gi:
-                        in_d.invoice_file = file_path
-                        in_d.save()
+                    # # generate invoice here
+                    # status_gi, file_path = generateInvoiceFile(user=user, ph_id=new_ph.id)
+                    # if status_gi:
+                    #     in_d.invoice_file = file_path
+                    #     in_d.save()
 
-                        new_ph.invoice_download_link = in_d.invoice_file.url
-                        new_ph.save()
+                    #     new_ph.invoice_download_link = in_d.invoice_file.url
+                    #     new_ph.save()
 
                     return Response({"success": True, "error":False, "payment_details":payment, "message": "Payment success !"})
             
