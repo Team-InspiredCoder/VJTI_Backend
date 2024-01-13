@@ -121,8 +121,8 @@ class Login(APIView):
         print("user:",user)
         if user is not None:
 
-            if not user.is_verified:
-                return Response({"success": False, "message": "Email is not verified. Please verify Email and try Again !"})
+            # if not user.is_verified:
+            #     return Response({"success": False, "message": "Email is not verified. Please verify Email and try Again !"})
 
             token = RefreshToken.for_user(user)
             data = GetCustomUserSerializer(user).data
