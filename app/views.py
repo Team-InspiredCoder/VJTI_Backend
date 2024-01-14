@@ -231,6 +231,7 @@ def scrap_from_indian_oil(request):
     if response.status_code == 200:
         # The request was successful
         html_content = response.content.decode("utf-8")
+        count = 0
         soup = BeautifulSoup(html_content, 'html.parser')
         for store_info_box in soup.select('.store-info-box'):
             business_name = store_info_box.select_one('.outlet-name a').text.strip()
@@ -259,7 +260,9 @@ def scrap_from_indian_oil(request):
                 "details_link": details_link,
                 "latitude": latitude,
                 "longitude": longitude,
+                "index":count
             }
+            count+=1
 
             # Add the dictionary to the list
             stores_data.append(store_data)
