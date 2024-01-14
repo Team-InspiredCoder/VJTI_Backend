@@ -287,74 +287,74 @@ def scrap_from_indian_oil(request):
 
 # from selenium import webdriver
 # from selenium.webdriver.chrome.options import Options
-import time
-from bs4 import BeautifulSoup
-import json
+# import time
+# from bs4 import BeautifulSoup
+# import json
 
-import json
-@api_view(['GET'])
-def puc_data(request):
-    state = request.data.get('state','maharashtra')
-    city = request.data.get('city','mumbai(central)')
+# import json
+# @api_view(['GET'])
+# def puc_data(request):
+#     state = request.data.get('state','maharashtra')
+#     city = request.data.get('city','mumbai(central)')
 
-    state_dict = {'maharashtra':'MH','gujrat':'GJ'}
-    city_dict = {'Ahmedabad(east)':'27','mumbai(east)':'3','mumbai(central)':'1','mumbai(west)':'2'}
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")  
-    chrome_options.add_argument("--disable-gpu")  
+#     state_dict = {'maharashtra':'MH','gujrat':'GJ'}
+#     city_dict = {'Ahmedabad(east)':'27','mumbai(east)':'3','mumbai(central)':'1','mumbai(west)':'2'}
+#     chrome_options = Options()
+#     chrome_options.add_argument("--headless")  
+#     chrome_options.add_argument("--disable-gpu")  
 
-    driver = webdriver.Chrome(options=chrome_options)
+#     driver = webdriver.Chrome(options=chrome_options)
 
-    # Open the website
-    driver.get("https://puc.parivahan.gov.in/puc/views/PUCCenterList.xhtml")
+#     # Open the website
+#     driver.get("https://puc.parivahan.gov.in/puc/views/PUCCenterList.xhtml")
 
-    time.sleep(2)
+#     time.sleep(2)
 
-    # Set the value for the state_input dropdown using script
-    print('state_dict[state]:',state_dict[state])
-    print('city_dict[city]:',city_dict[city])
-    driver.execute_script("document.getElementById('state_input').value='{}';".format(state_dict[state]))
-    driver.execute_script("""
-        var officeInput = document.getElementById('state_input');
-        officeInput.dispatchEvent(new Event('change'));
-        console.log('onchange event triggered for state');
-    """)
-    time.sleep(2)
+#     # Set the value for the state_input dropdown using script
+#     print('state_dict[state]:',state_dict[state])
+#     print('city_dict[city]:',city_dict[city])
+#     driver.execute_script("document.getElementById('state_input').value='{}';".format(state_dict[state]))
+#     driver.execute_script("""
+#         var officeInput = document.getElementById('state_input');
+#         officeInput.dispatchEvent(new Event('change'));
+#         console.log('onchange event triggered for state');
+#     """)
+#     time.sleep(2)
 
-    # Set the value for the office_input dropdown using script
-    driver.execute_script("document.getElementById('office_input').value='{}';".format(city_dict[city]))
+#     # Set the value for the office_input dropdown using script
+#     driver.execute_script("document.getElementById('office_input').value='{}';".format(city_dict[city]))
 
-    # Trigger the onchange event for office_input
-    driver.execute_script("""
-        var officeInput = document.getElementById('office_input');
-        officeInput.dispatchEvent(new Event('change'));
-        console.log('onchange event triggered for office_input');
-    """)
+#     # Trigger the onchange event for office_input
+#     driver.execute_script("""
+#         var officeInput = document.getElementById('office_input');
+#         officeInput.dispatchEvent(new Event('change'));
+#         console.log('onchange event triggered for office_input');
+#     """)
 
-    # Wait for 2 seconds
-    time.sleep(2)
+#     # Wait for 2 seconds
+#     time.sleep(2)
 
-    # Get the HTML content of the page
-    html_content = driver.page_source
+#     # Get the HTML content of the page
+#     html_content = driver.page_source
 
-    # Parse the HTML content using BeautifulSoup
-    soup = BeautifulSoup(html_content, 'html.parser')
+#     # Parse the HTML content using BeautifulSoup
+#     soup = BeautifulSoup(html_content, 'html.parser')
 
-    # Extract information from the table rows
-    rows = soup.find('tbody', {'id': 'model_data'}).find_all('tr')
+#     # Extract information from the table rows
+#     rows = soup.find('tbody', {'id': 'model_data'}).find_all('tr')
 
-    data_list = []
+#     data_list = []
 
-    for row in rows:
-        cell_data = [cell.get_text(strip=True) for cell in row.find_all('td')]
-        data_list.append(cell_data)
+#     for row in rows:
+#         cell_data = [cell.get_text(strip=True) for cell in row.find_all('td')]
+#         data_list.append(cell_data)
 
-    # Print the extracted data as JSON
-    print(json.dumps(data_list, indent=2))
+#     # Print the extracted data as JSON
+#     print(json.dumps(data_list, indent=2))
 
-    # Close the headless browser
-    driver.quit()
-    return JsonResponse({"data":data_list})
+#     # Close the headless browser
+#     driver.quit()
+#     return JsonResponse({"data":data_list})
 @api_view(['POST'])
 def register_garage(request):
     basic = request.data['basic']

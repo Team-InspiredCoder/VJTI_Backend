@@ -12,7 +12,7 @@ urlpatterns = [
     # test
     path('link/verify/<str:token>', verifyLink, name="verify-link"),
     path('indian-oil-data/',scrap_from_indian_oil),
-    path('puc-data/',puc_data),
+    # path('puc-data/',puc_data),
     path('register-garage/',register_garage),
     path('get-garage/',get_garage),
     path('rate-garage/',rate_garage),
