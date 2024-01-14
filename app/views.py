@@ -211,12 +211,11 @@ import json
 from bs4 import BeautifulSoup
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
-
 @api_view(['GET'])
 def scrap_from_indian_oil(request):
 
     ip = request.META.get('REMOTE_ADDR')
-    print("ip:",request.META)
+    print("ip:", request.META)
     location = request.GET.get('location')
     stores_data = []
     url = "https://locator.iocl.com/?search={}".format(location)
@@ -244,6 +243,10 @@ def scrap_from_indian_oil(request):
             map_link = store_info_box.select_one('.outlet-actions .btn-map')['href']
             details_link = store_info_box.select_one('.outlet-actions .btn-website')['href']
 
+            # Extract latitude and longitude values from hidden input fields
+            latitude = store_info_box.select_one('.outlet-latitude')['value']
+            longitude = store_info_box.select_one('.outlet-longitude')['value']
+
             # Create a dictionary for the current store-info-box
             store_data = {
                 "business_name": business_name,
@@ -254,6 +257,8 @@ def scrap_from_indian_oil(request):
                 "opening_hours": opening_hours,
                 "map_link": map_link,
                 "details_link": details_link,
+                "latitude": latitude,
+                "longitude": longitude,
             }
 
             # Add the dictionary to the list
@@ -276,7 +281,6 @@ def scrap_from_indian_oil(request):
         print("Response content:", response.text)
 
         return JsonResponse({"error": "Failed to fetch data"}, status=500)
-
 from bs4 import BeautifulSoup
 
 import json
