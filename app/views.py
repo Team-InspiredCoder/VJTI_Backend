@@ -338,10 +338,16 @@ def register_garage(request):
 
 @api_view(['GET'])
 def get_garage(request):
+    place = request.GET.get('place')
+
     queryset = Garage.objects.annotate(avg_rating=Avg('rating__rating')).order_by('-subscriptionEnabled', '-avg_rating')
+
+    if place:
+        # If 'place' parameter is provided, filter based on address containing the specified place
+        queryset = queryset.filter(address__icontains=place)
+
     data = GarageSerializer(queryset, many=True).data
     return JsonResponse({'data': data})
-
 
 
 @api_view(['POST'])
