@@ -281,43 +281,77 @@ def scrap_from_indian_oil(request):
         print("Response content:", response.text)
 
         return JsonResponse({"error": "Failed to fetch data"}, status=500)
+
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import time
 from bs4 import BeautifulSoup
+import json
 
 import json
 @api_view(['GET'])
 def puc_data(request):
-    location = request.data.get('location')
-    url = "https://www.indiacom.com/yellow-pages/p-u-c--center/{}".format(location)
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        # The request was successful
-        html_content = response.content.decode("utf-8")
+    state = request.data.get('state','maharashtra')
+    city = request.data.get('city','mumbai(central)')
+
+    state_dict = {'maharashtra':'MH','gujrat':'GJ'}
+    city_dict = {'Ahmedabad(east)':'27','mumbai(east)':'3','mumbai(central)':'1','mumbai(west)':'2'}
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  
+    chrome_options.add_argument("--disable-gpu")  
+
+    driver = webdriver.Chrome(options=chrome_options)
+
+    # Open the website
+    driver.get("https://puc.parivahan.gov.in/puc/views/PUCCenterList.xhtml")
+
+    time.sleep(2)
+
+    # Set the value for the state_input dropdown using script
+    print('state_dict[state]:',state_dict[state])
+    print('city_dict[city]:',city_dict[city])
+    driver.execute_script("document.getElementById('state_input').value='{}';".format(state_dict[state]))
+    driver.execute_script("""
+        var officeInput = document.getElementById('state_input');
+        officeInput.dispatchEvent(new Event('change'));
+        console.log('onchange event triggered for state');
+    """)
+    time.sleep(2)
+
+    # Set the value for the office_input dropdown using script
+    driver.execute_script("document.getElementById('office_input').value='{}';".format(city_dict[city]))
+
+    # Trigger the onchange event for office_input
+    driver.execute_script("""
+        var officeInput = document.getElementById('office_input');
+        officeInput.dispatchEvent(new Event('change'));
+        console.log('onchange event triggered for office_input');
+    """)
+
+    # Wait for 2 seconds
+    time.sleep(2)
+
+    # Get the HTML content of the page
+    html_content = driver.page_source
+
+    # Parse the HTML content using BeautifulSoup
     soup = BeautifulSoup(html_content, 'html.parser')
-    result_info_list = []
 
-    for resultbox_info in soup.find_all('div', class_='mx-2'):
-        name = resultbox_info.find('h2').text.strip()
-        address = resultbox_info.find('address').text.strip()
-        # phone_link = resultbox_info.find('a', class_='btn m-1')['href']
-        # Extracting phone number from the link
-        # phone_number = phone_link.split('/')[-1].replace('.html', '')
+    # Extract information from the table rows
+    rows = soup.find('tbody', {'id': 'model_data'}).find_all('tr')
 
-        result_info_list.append({
-            'name': name,
-            'address': address,
-            # 'phone_number': phone_number,
-        })
+    data_list = []
 
-    print("result_info_list:",result_info_list)
+    for row in rows:
+        cell_data = [cell.get_text(strip=True) for cell in row.find_all('td')]
+        data_list.append(cell_data)
 
-    return JsonResponse({"data": result_info_list})
+    # Print the extracted data as JSON
+    print(json.dumps(data_list, indent=2))
 
+    # Close the headless browser
+    driver.quit()
+    return JsonResponse({"data":data_list})
 @api_view(['POST'])
 def register_garage(request):
     basic = request.data['basic']
@@ -357,4 +391,6 @@ def rate_garage(request):
     garage = Garage.objects.get(id=garage_id)
     Rating.objects.create(garage=garage,rating=rating)
     return JsonResponse({'message': "Rating Added!"})
+
+
 

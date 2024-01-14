@@ -620,7 +620,7 @@ class Payment(APIView):
                         customer=user.stripe_customer_id, 
                         payment_method="pm_1OY7WtSE5WnqzRUfJupzcvNS",  
                         currency="inr",
-                        amount=request.data.get('amount'),
+                        amount=request.data.get('amount')*100,
                         confirm=True,
                         # automatic_payment_methods={"enabled": True},
                         automatic_payment_methods={'allow_redirects': "never","enabled":True},
