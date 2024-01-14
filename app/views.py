@@ -285,8 +285,8 @@ def scrap_from_indian_oil(request):
 
         return JsonResponse({"error": "Failed to fetch data"}, status=500)
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+# from selenium import webdriver
+# from selenium.webdriver.chrome.options import Options
 import time
 from bs4 import BeautifulSoup
 import json
