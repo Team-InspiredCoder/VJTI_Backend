@@ -233,6 +233,8 @@ class Garage(models.Model):
     name = models.CharField(max_length=200, null=True, blank=True)
     address = models.CharField(max_length=200, null=True, blank=True)
     subscriptionEnabled = models.BooleanField(default=False)
+    lat = models.CharField(max_length=200, null=True, blank=True)
+    log = models.CharField(max_length=200, null=True, blank=True)
 
 
 class Rating(models.Model):
